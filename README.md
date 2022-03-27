@@ -48,7 +48,7 @@ in the terminal. You can run
 ```
 make clean
 ```
-to delete all files produced during compilation, except for the game binary.
+to delete all files produced during compilation.
 
 
 
