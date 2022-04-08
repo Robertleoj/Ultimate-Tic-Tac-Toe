@@ -21,7 +21,7 @@ DCOMPILE_FLAGS = -D DEBUG
 # Add additional include paths
 INCLUDES = -I $(SRC_PATH) -I ./game/include -I ./ui/include -I ./agent/include
 # General linker settings
-LINK_FLAGS = -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_gfx -ltiff
+LINK_FLAGS = -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_gfx # -ltiff
 # Additional release-specific linker settings
 RLINK_FLAGS =
 # Additional debug-specific linker settings
