@@ -30,35 +30,8 @@ GameUI::~GameUI(){
 
     delete[] boards;
 
-    if(agent != nullptr){
-        delete agent;
-    }
-    
-    if (text_class != nullptr){
-        delete text_class;
-    }
-    if (media != nullptr){
-        delete media;
-    }
-
     if (won_message != nullptr){
         SDL_DestroyTexture(won_message);
-    }
-    
-    if(play_again_button != nullptr){
-        delete play_again_button;
-    }
-
-    if(restart_game_button != nullptr){
-        delete restart_game_button;
-    }
-
-    if(back_to_main_menu_button != nullptr){
-        delete back_to_main_menu_button;
-    }
-
-    if(game != nullptr){
-        delete game;
     }
 }
 
@@ -80,18 +53,15 @@ void GameUI::restart_game(){
 
 
 void GameUI::init_ai_class(){
-    if(this->agent != nullptr){
-        delete this->agent;
-    }
-    this->agent = new Agent(this->ai_play_clock);
+    this->agent = std::unique_ptr<Agent>(new Agent(this->ai_play_clock));
 }
 
 void GameUI::init_game_class(){
-    if(this->game != nullptr){
-        delete game;
+    // if(this->game != nullptr){
+    //     delete game;
         
-    }
-    this->game = new Game();
+    // }
+    this->game = std::unique_ptr<Game>(new Game());
     state_data = game->get_state_data();
 }
 
@@ -102,7 +72,7 @@ void GameUI::init_connection(){
 }
 
 void GameUI::init_text_class(){
-    this->text_class = new Text(renderer);
+    this->text_class = std::unique_ptr<Text>(new Text(renderer));
 }
 
 SDL_Texture * GameUI::load_texture(std::string path){
@@ -133,7 +103,7 @@ SDL_Texture * GameUI::load_texture(std::string path){
 
 
 bool GameUI::load_media(){
-    this->media = new Assets(renderer);
+    this->media = std::unique_ptr<Assets>(new Assets(renderer));
     media->add_texture("cross.png", CROSS_SHAPE);
     media->add_texture("circle.png", CIRCLE_SHAPE);
     return true;
@@ -162,7 +132,7 @@ void GameUI::init_board(){
             x2 = x1 + board_incr - thick_line_width*2;
             y2 = y1 + board_incr - thick_line_width*2;
             
-            boards[i][j] = new SmallBoard(renderer,media,x1, y1, x2, y2, std::make_pair(i, j));
+            boards[i][j] = new SmallBoard(renderer,media.get(),x1, y1, x2, y2, std::make_pair(i, j));
         }
     }
 }
@@ -398,29 +368,29 @@ void GameUI::init_buttons(){
 
     // make play again button
 
-    this->play_again_button = new Button(
+    this->play_again_button = std::unique_ptr<Button>(new Button(
         renderer, 
         button_rect,
         "Play again?"
-    );
+    ));
 
     // make restart button
 
-    this->restart_game_button = new Button(
+    this->restart_game_button = std::unique_ptr<Button>(new Button(
         renderer, 
         button_rect,
         "Restart Game"
-    );
+    ));
 
     // make back button
 
     button_rect.x += width + space_between;
     
-    this->back_to_main_menu_button = new Button(
+    this->back_to_main_menu_button = std::unique_ptr<Button>(new Button(
         renderer,
         button_rect,
         "Back"
-    );
+    ));
 
 }
 

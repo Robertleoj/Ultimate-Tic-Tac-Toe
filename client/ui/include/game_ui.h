@@ -23,24 +23,27 @@ public:
 
 private:
 
+    // SDL_objects cannot be stored with std::unique_ptr, as their deconstructor
+    // cannot be called. 
     SDL_Renderer *renderer = nullptr;
+    SDL_Texture * won_message = nullptr;
+
     SmallBoard *** boards = nullptr;
 
-    Agent * agent = nullptr;
+    std::unique_ptr<Agent> agent;
 
     std::unique_ptr<Connection> connection;
 
-    Game * game = nullptr;
-    Text * text_class = nullptr;
+    std::unique_ptr<Game> game;
+    std::unique_ptr<Text> text_class;
     StateData state_data;
 
-    SDL_Texture * won_message = nullptr;
 
-    Button * play_again_button = nullptr;
-    Button * restart_game_button = nullptr;
-    Button * back_to_main_menu_button = nullptr;
+    std::unique_ptr<Button> play_again_button;
+    std::unique_ptr<Button> restart_game_button;
+    std::unique_ptr<Button> back_to_main_menu_button;
 
-    Assets * media = nullptr;
+    std::unique_ptr<Assets> media;
 
     int mousex = 0;
     int mousey = 0;
