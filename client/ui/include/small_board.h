@@ -11,7 +11,7 @@ public:
 
     ~SmallBoard();
 
-    void render(StateData * state_data, int mousex=0, int mousey = 0);
+    void render(StateData * state_data, int mousex=0, int mousey = 0, bool our_turn = true);
 
     std::pair<int, int> which_cell(int mousex, int mousey);
 

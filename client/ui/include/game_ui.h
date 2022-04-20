@@ -11,6 +11,8 @@
 #include <agent.h>
 #include <memory>
 #include <connection.h>
+#include <mutex>
+#include <thread>
 
 
 class GameUI{
@@ -60,6 +62,12 @@ private:
     // only when playing online
     Turn whoami;
 
+    // thread will edit this when opponent has made a move
+    std::mutex opponent_move_mutex;
+    std::unique_ptr<std::thread> opponent_thread;
+    bool opponent_made_move;
+    board_idx opponent_move;
+
     // bool playing_ai;
     PlayMode play_mode;
     int ai_play_clock;
@@ -97,10 +105,15 @@ private:
     void init_game_class();
     void render();
     void init_match();
+
     void init_connection();
+    void start_opponent_move();
+    void check_opponent_move();
+    void start_online_opponent_move();
+    bool our_move();
 
     void reset_won_msg();
-    void make_remote_move();
+    void tasks();
 
     void close();
 };

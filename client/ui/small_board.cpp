@@ -115,7 +115,7 @@ bool SmallBoard::is_active(StateData * state_data){
     return false;
 }
 
-void SmallBoard::render(StateData *state_data, int mousex, int mousey){
+void SmallBoard::render(StateData *state_data, int mousex, int mousey, bool our_turn){
 
     // printf("Rendering small board %d %d\n", idx.first, idx.second);
     Condition win_board_state = state_data->win_boards[this->idx.first][this->idx.second];
@@ -129,10 +129,11 @@ void SmallBoard::render(StateData *state_data, int mousex, int mousey){
         draw_grid(false);
         active = false;
     }
-
-    else if(win_board_state == EMPTY){
+    else if(!our_turn){
+        active = false;
+    }else if(win_board_state == EMPTY){
         // Find out whether the state is active or not
-        active = is_active(state_data);
+        active = is_active(state_data) && our_turn;
     }
     draw_grid(active);
     for(int i = 0; i< 3 ; i++){

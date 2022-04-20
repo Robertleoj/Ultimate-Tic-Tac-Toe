@@ -44,11 +44,7 @@ void GameUI::reset_won_msg(){
 
 void GameUI::restart_game(){
     reset_won_msg();
-    this->init_game_class();
-
-    if(this->play_mode == PM_PLAY_AI){
-        init_ai_class();
-    }
+    this->init_match();
 }
 
 
@@ -193,15 +189,40 @@ void GameUI::draw_board(){
 void GameUI::render_small_boards(){
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
-            boards[i][j]->render(&this->state_data, mousex, mousey);
+            boards[i][j]->render(&this->state_data, mousex, mousey, our_move());
         }
     }
 }
 
-void GameUI::make_remote_move(){
-    board_idx opponent_move = this->connection->get_move();
-    this->game->move(opponent_move);
+void GameUI::start_online_opponent_move(){
+    board_idx opp_move = this->connection->get_move();
+    this->opponent_move_mutex.lock();
+    this->opponent_made_move = true;
+    this->opponent_move = opp_move;
+    this->opponent_move_mutex.unlock();
+}
+
+void GameUI::start_opponent_move(){
+    this->opponent_made_move = false;
+    if(this->play_mode == PM_PLAY_AI){
+
+    } else if(this->play_mode == PM_ONLINE){
+        this->opponent_thread = std::unique_ptr<std::thread>(new std::thread(
+            [this] {this->start_online_opponent_move();}
+        ));
+    }
     this->state_data = game->get_state_data();
+}
+
+void GameUI::check_opponent_move(){
+    this->opponent_move_mutex.lock();
+    if(this->opponent_made_move){
+        this->opponent_thread->join();
+        this->game->move(this->opponent_move);
+        this->state_data = this->game->get_state_data();
+        this->opponent_made_move = false;
+    }
+    this->opponent_move_mutex.unlock();
 }
 
 bool GameUI::handle_click(){
@@ -241,10 +262,8 @@ bool GameUI::handle_click(){
                                     && !this->state_data.terminal.first 
                                 ){
                                     this->connection->send_move(move);
-                                    this->render();
-                                    make_remote_move();
+                                    start_opponent_move();
                                 }
-
                                 return false;
                             }
                         }
@@ -407,6 +426,7 @@ void GameUI::render_buttons(){
     }
 }
 
+
 void GameUI::init_match(){
     init_game_class();
     if(this->play_mode == PM_PLAY_AI){
@@ -427,6 +447,26 @@ void GameUI::render(){
     SDL_RenderPresent(renderer);
 }
 
+bool GameUI::our_move(){
+    bool is_terminal = state_data.terminal.first;
+
+    if(this->play_mode == PM_PLAY_AI || this->play_mode == PM_ONLINE){
+        return this->whoami == this->state_data.turn
+            && !is_terminal;
+    } else{
+        return !is_terminal;
+    }
+}
+
+void GameUI::tasks(){
+    if(this->play_mode == PM_PLAY_AI || this->play_mode == PM_ONLINE){
+        if(!our_move()){
+            check_opponent_move();
+        }
+    }
+}
+
+
 bool GameUI::run(PlayMode play_mode, Difficulties diff){
     this->play_mode = play_mode;
 
@@ -440,7 +480,7 @@ bool GameUI::run(PlayMode play_mode, Difficulties diff){
     if(this->play_mode == PM_ONLINE
         && this->state_data.turn != this->whoami
     ){
-        make_remote_move();
+        start_opponent_move();
     }
 
     bool quit = false;
@@ -462,7 +502,7 @@ bool GameUI::run(PlayMode play_mode, Difficulties diff){
             }
         }
         render();
-        
+        tasks();
         frame_delay();
     }
     return close_program;
