@@ -4,9 +4,9 @@
 class Connection{
 public:
     // Connection();
-    Turn init_connection();
-    board_idx get_move();
-    void send_move(board_idx move);
+    bool init_connection(Turn &t);
+    bool get_move(board_idx &mv);
+    bool send_move(board_idx move);
 
 private:
     SOCK_TYPE sock;

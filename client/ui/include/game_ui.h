@@ -62,11 +62,16 @@ private:
     // only when playing online
     Turn whoami;
 
-    // thread will edit this when opponent has made a move
+    // opponent thread variables --
     std::mutex opponent_move_mutex;
     std::unique_ptr<std::thread> opponent_thread;
-    bool opponent_made_move;
+    bool thread_running; 
+
+    // shared data -- use mutex to use
+    bool opponent_made_move; 
     board_idx opponent_move;
+    
+    // ---------------------------
 
     // bool playing_ai;
     PlayMode play_mode;

@@ -7,10 +7,10 @@
 #include <ui_utils.h>
 #include <unistd.h>
 
-
 GameUI::GameUI(SDL_Renderer * renderer){
     // agent = new Agent(1000);
     this->renderer = renderer;
+    this->thread_running=false;
     init_game_class();
     init_text_class();
     load_media();
@@ -32,9 +32,14 @@ GameUI::~GameUI(){
 
     if (won_message != nullptr){
         SDL_DestroyTexture(won_message);
+        won_message = nullptr;
     }
 }
 
+/*
+The won message might be different between games
+    so we need to destroy it
+*/
 void GameUI::reset_won_msg(){
     if(won_message != nullptr){
         SDL_DestroyTexture(won_message);
@@ -42,8 +47,16 @@ void GameUI::reset_won_msg(){
     }
 }
 
+/*
+Reset the whole game state
+    in order to restart the game
+Note: restarting the game assumes starting again the same game mode
+*/
 void GameUI::restart_game(){
     reset_won_msg();
+    if(this->thread_running){
+        this->opponent_thread->join();
+    }
     this->init_match();
 }
 
@@ -53,24 +66,22 @@ void GameUI::init_ai_class(){
 }
 
 void GameUI::init_game_class(){
-    // if(this->game != nullptr){
-    //     delete game;
-        
-    // }
     this->game = std::unique_ptr<Game>(new Game());
     state_data = game->get_state_data();
 }
 
 void GameUI::init_connection(){
     this->connection = std::unique_ptr<Connection>(new Connection());
-    this->whoami = connection->init_connection();
-
+    bool success = connection->init_connection(this->whoami);
+    // TODO: do something on failure
 }
 
 void GameUI::init_text_class(){
     this->text_class = std::unique_ptr<Text>(new Text(renderer));
 }
-
+/*
+Load an image at path, receive a texture
+*/
 SDL_Texture * GameUI::load_texture(std::string path){
     // The final texture
     SDL_Texture * new_texture = nullptr;
@@ -96,8 +107,9 @@ SDL_Texture * GameUI::load_texture(std::string path){
     return new_texture;
 }
 
-
-
+/*
+Load all the media we need for the game
+*/
 bool GameUI::load_media(){
     this->media = std::unique_ptr<Assets>(new Assets(renderer));
     media->add_texture("cross.png", CROSS_SHAPE);
@@ -133,6 +145,10 @@ void GameUI::init_board(){
     }
 }
 
+/*
+Draw the big board
+Note: this does not draw the small boards, only the big board
+*/
 void GameUI::draw_board(){
     
 
@@ -160,6 +176,10 @@ void GameUI::draw_board(){
     if(!state_data.terminal.first){
         auto active_board = this->state_data.active_board;
 
+        // We want do raw around the active small board - the one 
+        // that should be played in
+
+        // define where we should draw
         if(active_board.first == -1 && active_board.second == -1){
             // Draw around the whole board
             xstart = x_board_start;
@@ -168,13 +188,15 @@ void GameUI::draw_board(){
             yend = y_board_start + 3 * board_incr;
 
         } else {
-            // Draw around the active dude
+            // Draw around the active small board - the one 
+            // that should be played in
             xstart = x_board_start + active_board.first * board_incr;
             xend = xstart + board_incr;
             ystart = y_board_start + active_board.second * board_incr;
             yend = ystart + board_incr;
         }
 
+        // Actually draw
         // horizontal
         draw_line(renderer, xstart, ystart, xend, ystart, highlight_line_style);
         draw_line(renderer, xstart, yend, xend, yend, highlight_line_style);
@@ -185,7 +207,6 @@ void GameUI::draw_board(){
     }
 }
 
-
 void GameUI::render_small_boards(){
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
@@ -194,30 +215,48 @@ void GameUI::render_small_boards(){
     }
 }
 
+/*
+Gets the opponent's move from the server
+and updates the corresponding variables
+*/
 void GameUI::start_online_opponent_move(){
-    board_idx opp_move = this->connection->get_move();
+    board_idx opp_move;
+    bool success = this->connection->get_move(opp_move);
+    // TODO: do somethingo on failure
     this->opponent_move_mutex.lock();
     this->opponent_made_move = true;
     this->opponent_move = opp_move;
     this->opponent_move_mutex.unlock();
 }
 
+/*
+Start the thread that gets the opponent's move
+*/
 void GameUI::start_opponent_move(){
     this->opponent_made_move = false;
     if(this->play_mode == PM_PLAY_AI){
 
     } else if(this->play_mode == PM_ONLINE){
+        // Start in seperate thread to keep interface running
         this->opponent_thread = std::unique_ptr<std::thread>(new std::thread(
             [this] {this->start_online_opponent_move();}
         ));
+        this->thread_running = true;
     }
     this->state_data = game->get_state_data();
 }
 
 void GameUI::check_opponent_move(){
+
+    // Need to lock this as we will be accessing shared data
     this->opponent_move_mutex.lock();
     if(this->opponent_made_move){
+        // The opponent has moved, so the thread finished its work
+        // thus we can join it now
         this->opponent_thread->join();
+
+        // update state
+        this->thread_running = false;
         this->game->move(this->opponent_move);
         this->state_data = this->game->get_state_data();
         this->opponent_made_move = false;

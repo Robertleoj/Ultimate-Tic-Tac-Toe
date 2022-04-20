@@ -1,16 +1,21 @@
 #include <connection.h>
 #include <iostream>
 
-
-Turn Connection::init_connection(){
+/*
+Initialize the connection
+Replaces the t variable with who the player is playing as
+returns true on success, false on failure
+*/
+bool Connection::init_connection(Turn &t){
     // make the socket
     this->sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(this->sock < 0){
         std::cout << "socket() failed" << std::endl;
+        return false;
     }
     
     if(!connect_to_server(sock, DEFAULT_PORT, LOCALHOST)){
-        // exit(0);
+        return false;
     }
 
     // get whose turn it is - it is a boolean
@@ -18,11 +23,13 @@ Turn Connection::init_connection(){
     int n = recv(this->sock, buff, 1, 0);
     if(n <= 0){
         std::cout << "failed to recv() who we are" << std::endl;
+        return false;
     }
 
     bool turn = *((bool *) buff);
 
-    return turn ? CROSS_TURN : CIRCLE_TURN;
+    t = turn ? CROSS_TURN : CIRCLE_TURN;
+    return true;
 }
 
 /*
@@ -67,7 +74,7 @@ bool Connection::get_move(board_idx &move){
     board_idx mv;
     int * move_arr = (int *) move_buff;
     for(int i = 0; i < 4; i++){
-        move.push_back(move_arr[i]);
+        mv.push_back(move_arr[i]);
     }
 
     move = mv;
