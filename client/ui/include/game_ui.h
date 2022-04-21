@@ -115,6 +115,7 @@ private:
     void start_opponent_move();
     void check_opponent_move();
     void start_online_opponent_move();
+    void start_ai_opponent_move();
     bool our_move();
 
     void reset_won_msg();

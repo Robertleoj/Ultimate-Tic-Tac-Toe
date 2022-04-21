@@ -229,13 +229,23 @@ void GameUI::start_online_opponent_move(){
     this->opponent_move_mutex.unlock();
 }
 
+void GameUI::start_ai_opponent_move(){
+    board_idx ai_move = this->agent->get_move();
+    this->opponent_move_mutex.lock();
+    this->opponent_made_move = true;
+    this->opponent_move = ai_move;
+    this->opponent_move_mutex.unlock();   
+}
+
 /*
 Start the thread that gets the opponent's move
 */
 void GameUI::start_opponent_move(){
     this->opponent_made_move = false;
     if(this->play_mode == PM_PLAY_AI){
-
+        this->opponent_thread = std::unique_ptr<std::thread>(new std::thread(
+            [this] {this->start_ai_opponent_move();}
+        ));
     } else if(this->play_mode == PM_ONLINE){
         // Start in seperate thread to keep interface running
         this->opponent_thread = std::unique_ptr<std::thread>(new std::thread(
@@ -287,13 +297,10 @@ bool GameUI::handle_click(){
                                 this->game->move(move);
                                 this->state_data = game->get_state_data();
 
-                                if(this->play_mode == PM_PLAY_AI && !this->state_data.terminal.first){
-                                    this->render();
+                                if(this->play_mode == PM_PLAY_AI 
+                                    && !this->state_data.terminal.first){
                                     this->agent->update(move);
-                                    board_idx ai_move = this->agent->get_move();
-
-                                    this->game->move(ai_move);
-                                    this->state_data = game->get_state_data();
+                                    start_opponent_move();
                                 }
 
                                 if(
@@ -316,18 +323,21 @@ bool GameUI::handle_click(){
         // Check whether the player pressed play again
         if(this->play_again_button->on_button(mousex, mousey)){
             // restart game
+            this->connection->close_connection();
             restart_game();
             return false;
         }
     } else {
         if(this->restart_game_button->on_button(mousex, mousey)){
             // restart game
+            this->connection->close_connection();
             restart_game();
             return false;
         }
     }
 
     if(this->back_to_main_menu_button->on_button(mousex, mousey)){
+        this->connection->close_connection();
         return true;
     }
 
@@ -469,6 +479,7 @@ void GameUI::render_buttons(){
 void GameUI::init_match(){
     init_game_class();
     if(this->play_mode == PM_PLAY_AI){
+        this->whoami = CROSS_TURN;
         init_ai_class();
     } else if(this->play_mode == PM_ONLINE){
         init_connection();

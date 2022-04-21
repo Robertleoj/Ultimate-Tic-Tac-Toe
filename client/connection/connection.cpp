@@ -1,5 +1,6 @@
 #include <connection.h>
 #include <iostream>
+#include <unistd.h>
 
 /*
 Initialize the connection
@@ -79,4 +80,8 @@ bool Connection::get_move(board_idx &move){
 
     move = mv;
     return true;
+}
+
+void Connection::close_connection(){
+    close(this->sock);
 }
