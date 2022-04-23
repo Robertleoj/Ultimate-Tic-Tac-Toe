@@ -16,6 +16,7 @@ bool Connection::init_connection(Turn &t){
     }
     
     if(!connect_to_server(sock, DEFAULT_PORT, LOCALHOST)){
+//    if(!connect_to_server(sock, DEFAULT_PORT, "130.208.243.61")){ // ip of skel
         return false;
     }
 

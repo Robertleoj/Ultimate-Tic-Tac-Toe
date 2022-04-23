@@ -2,6 +2,7 @@
 #include <agent_static.h>
 #include <math.h>
 #include <random>
+#include <stdexcept>
 
 
 Agent::Agent(int play_clock){
