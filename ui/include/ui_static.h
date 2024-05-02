@@ -72,8 +72,8 @@ enum Difficulties {
 
 
 const std::unordered_map<Difficulties, int> difficulty_playclock_map = {
-    {EASY, 10},
-    {MEDIUM, 400},
-    {HARD, 1000},
-    {EXTREME, 2000}
+    {EASY, 1},
+    {MEDIUM, 10},
+    {HARD, 50},
+    {EXTREME, 1000}
 };
